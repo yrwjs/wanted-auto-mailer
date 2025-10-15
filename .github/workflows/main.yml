@@ -1,0 +1,39 @@
+# .github/workflows/main.yml
+
+name: Send Mail Automation # 워크플로우의 이름
+
+on:
+  # 1. 수동으로 실행할 수 있도록 workflow_dispatch 추가
+  workflow_dispatch:
+
+  # 2. 스케줄에 따라 주기적으로 실행 (cron 스케줄러)
+  # 아래 예시는 30분마다 실행됩니다.
+  schedule:
+    - cron: '*/30 * * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # 실행될 가상 환경 (Ubuntu 최신 버전)
+
+    steps:
+      # 1. 저장소 코드를 가상 환경으로 불러오기
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. 파이썬 환경 설정
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' # 사용할 파이썬 버전
+
+      # 3. 파이썬 스크립트 실행
+      - name: Run Python script
+        # 이전 단계에서 등록한 Secrets와 기타 설정 값들을 "환경 변수"로 주입
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          LOCATION: "서울"
+          YEAR: "2025"
+          JOBS: "데이터 분석가"
+        run: python automation.py
