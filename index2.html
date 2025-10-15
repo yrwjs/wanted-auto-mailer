@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>원티드 채용 검색</title>
+    <!-- Font Loading Optimization -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* General body styling */
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 20px 20px 150px 20px; /* Add bottom padding to avoid content overlapping with waves */
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        /* Centered container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Main title */
+        h1 {
+            color: #2d2d2d;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        /* Controls container for filters and button */
+        .controls {
+            display: flex;
+            flex-direction: column; /* Changed to column for checkbox layout */
+            gap: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        /* Styling for each filter group */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .control-group > label { /* Direct child label is the title */
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        /* Container for checkbox options */
+        .checkbox-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 15px;
+            max-height: 110px;
+            overflow-y: auto;
+            border: 1px solid #e1e2e3;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fcfcfc;
+        }
+        
+        /* Individual checkbox label styling */
+        .checkbox-options label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        .checkbox-options input[type="checkbox"] {
+            margin-right: 6px;
+        }
+
+        /* Search button styling */
+        #search-button {
+            padding: 12px 25px;
+            border: none;
+            background-color: #36f;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%; /* Make button full-width */
+            margin-top: 10px;
+        }
+
+        #search-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Loading indicator */
+        #loading {
+            text-align: center;
+            font-size: 1.2em;
+            color: #777;
+            padding: 40px 0;
+            display: none;
+        }
+
+        /* Loading text animation */
+        #loading span {
+            animation: blink 1.4s infinite both;
+            display: inline-block; /* To apply animation */
+        }
+
+        #loading span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        #loading span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0; }
+            40% { opacity: 1; }
+        }
+
+        /* Grid container for job cards */
+        .job-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        /* Individual job card styling */
+        .job-card {
+            background-color: #fff;
+            border: 1px solid #e1e2e3;
+            border-radius: 12px; /* Softer corners */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Important for thumbnail border-radius */
+        }
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Thumbnail image style */
+        .job-card-thumbnail {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        /* Wrapper for card content below thumbnail */
+        .job-card-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column; /* Ensure content and buttons are stacked */
+            justify-content: space-between;
+            flex-grow: 1;
+        }
+
+        .job-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 8px;
+            word-break: keep-all;
+        }
+
+        .company-name {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 15px;
+        }
+
+        .job-details {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        /* Details link button */
+        .job-link {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            color: #fff;
+            background-color: #36f;
+            padding: 10px 0; /* Adjusted padding */
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            flex-grow: 1; /* Make it take available space */
+        }
+
+        .card-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: auto; /* Push buttons to the bottom */
+        }
+
+        .job-link:hover {
+            background-color: #0056b3;
+        }
+
+        /* Save button styling */
+        .save-btn {
+            background: #fff;
+            border: 1px solid #e1e2e3;
+            color: #333;
+            padding: 10px 0; /* Adjusted padding */
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s; 
+            flex-basis: 100px; /* Give it a base width */
+            flex-grow: 0;
+        }
+
+        .save-btn:hover {
+            background: #e0e0e0;
+        }
+
+        /* Saved state for the button */
+        .save-btn.saved {
+            background-color: #fff0f5; /* Light pink background */
+            color: #ff1493; /* Deep pink text/icon */
+            border-color: #ffc0cb; /* Pink border */
+        }
+
+        /* "To Top" button styling */
+        #to-top-button {
+            display: none; /* Hidden by default */
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 99;
+            border: none;
+            outline: none;
+            background-color: #36f;
+            color: white;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        #to-top-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Wave background styling */
+        .wave-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            z-index: -1;
+        }
+        .waves {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .parallax > use {
+            animation: move-wave 25s cubic-bezier(.55,.5,.45,.5) infinite;
+        }
+        .parallax > use:nth-child(1) {
+            animation-delay: -2s; animation-duration: 7s; fill: rgba(51, 102, 255, 0.7);
+        }
+        .parallax > use:nth-child(2) {
+            animation-delay: -3s; animation-duration: 10s; fill: rgba(51, 102, 255, 0.5);
+        }
+        .parallax > use:nth-child(3) {
+            animation-delay: -4s; animation-duration: 13s; fill: rgba(51, 102, 255, 0.3);
+        }
+        .parallax > use:nth-child(4) {
+            animation-delay: -5s; animation-duration: 20s; fill: #36f;
+        }
+        @keyframes move-wave {
+            0% { transform: translate3d(-90px, 0, 0); }
+            100% { transform: translate3d(85px, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 원티드 채용 공고 검색 🚀</h1>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>채용 지역</label>
+                <div class="checkbox-options" id="region-options">
+                    <!-- Options will be generated by JS -->
+                </div>
+            </div>
+            <div class="control-group">
+                <label>채용 형태</label>
+                <div class="checkbox-options" id="exp-options">
+                    <!-- Options will be generated by JS -->
+                </div>
+            </div>
+            <div class="control-group">
+                <label>찜한 공고</label>
+                <div class="checkbox-options" id="saved-options"></div>
+            </div>
+            <button id="search-button">검색하기</button>
+        </div>
+
+        <div id="loading">채용 공고를 검색 중입니다<span>.</span><span>.</span><span>.</span></div>
+        <div id="job-board" class="job-container">
+            <!-- Job postings will be dynamically inserted here -->
+        </div>
+
+        <button id="to-top-button" title="맨 위로 이동">↑</button>
+
+        <!-- Animated Wave Background -->
+        <div class="wave-container">
+            <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+            viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+                <defs>
+                    <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
+                </defs>
+                <g class="parallax">
+                    <use xlink:href="#gentle-wave" x="48" y="0" />
+                    <use xlink:href="#gentle-wave" x="48" y="3" />
+                    <use xlink-href="#gentle-wave" x="48" y="5" />
+                    <use xlink:href="#gentle-wave" x="48" y="7" />
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchButton = document.getElementById('search-button');
+            const jobBoard = document.getElementById('job-board');
+            const loadingIndicator = document.getElementById('loading');
+            let currentJobs = []; // 현재 로드된 채용 공고 목록을 저장할 변수
+
+            // --- Data for checkboxes ---
+            const regions = {
+                "서울": "seoul.all", "경기": "gyeonggi.all", "인천": "incheon.all", "강원": "gangwon.all",
+                "대전": "daejeon.all", "충남": "chungnam.all", "충북": "chungbuk.all", "부산": "busan.all",
+                "울산": "ulsan.all", "대구": "daegu.all", "경남": "gyeongnam.all", "경북": "gyeongbuk.all",
+                "광주": "gwangju.all", "전남": "jeonnam.all", "전북": "jeonbuk.all", "제주": "jeju.all"
+            };
+            // Requirement 2: Modify experience options
+            const experiences = { "신입": "0", "경력": "2", "무관": "-1" };
+            const savedFilterOptions = { "표시": "show", "미표시": "hide" };
+
+            // --- Functions to dynamically create checkboxes ---
+            function populateCheckboxes(containerId, options, name) {
+                const container = document.getElementById(containerId);
+                let html = '';
+                for (const [text, value] of Object.entries(options)) {
+                    html += `<label><input type="checkbox" name="${name}" value="${value}">${text}</label>`;
+                }
+                container.innerHTML = html;
+            }
+            
+            // --- Helper function to get selected checkbox values ---
+            function getSelectedCheckboxValues(name) {
+                const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+                return Array.from(checkboxes).map(cb => cb.value);
+            }
+            
+            // --- Helper functions for wishlist (찜하기) ---
+            function getSavedJobIds() {
+                const savedJobs = localStorage.getItem('savedJobIds');
+                return savedJobs ? JSON.parse(savedJobs) : [];
+            }
+
+            function saveJobIds(ids) {
+                localStorage.setItem('savedJobIds', JSON.stringify(ids));
+            }
+
+            function toggleSaveJob(jobId) {
+                let savedIds = getSavedJobIds();
+                if (savedIds.includes(jobId)) {
+                    savedIds = savedIds.filter(id => id !== jobId);
+                } else {
+                    savedIds.push(jobId);
+                }
+                saveJobIds(savedIds);
+            }
+
+            // Function to fetch ALL saved jobs from storage
+            function fetchSavedJobs() {
+                loadingIndicator.style.display = 'block';
+                jobBoard.innerHTML = '';
+
+                const savedIds = getSavedJobIds();
+                if (savedIds.length === 0) {
+                    loadingIndicator.style.display = 'none';
+                    jobBoard.innerHTML = '<p style="text-align:center;">❤️ 찜한 공고가 없습니다.</p>';
+                    return;
+                }
+
+                const fetchPromises = savedIds.map(id => {
+                    const url = `https://www.wanted.co.kr/api/v4/jobs/${id}`;
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                    return fetch(proxyUrl)
+                        .then(response => response.json())
+                        .then(data => JSON.parse(data.contents).job);
+                });
+
+                Promise.all(fetchPromises)
+                    .then(jobs => {
+                        // The API returns the full job object, which is slightly different from the list item.
+                        currentJobs = jobs; // Update currentJobs with the list of saved jobs
+                        displayJobs(jobs);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching saved jobs:', error);
+                        loadingIndicator.style.display = 'none';
+                        jobBoard.innerHTML = '<p style="text-align:center; color:red;">찜한 공고를 불러오는 데 실패했습니다.</p>';
+                    });
+            }
+
+            // Function to fetch and display jobs
+            function fetchAndDisplayJobs() {
+                const selectedRegions = getSelectedCheckboxValues('region');
+                const selectedExps = getSelectedCheckboxValues('experience');
+                const selectedSavedFilters = getSelectedCheckboxValues('saved');
+
+                // If only "표시" is checked for saved jobs, and no other filters, fetch all saved jobs.
+                if (selectedSavedFilters.length === 1 && selectedSavedFilters[0] === 'show' && selectedRegions.length === 0 && selectedExps.length === 0) {
+                    fetchSavedJobs();
+                    return;
+                }
+
+                loadingIndicator.style.display = 'block';
+                jobBoard.innerHTML = '';
+                const baseParams = {
+                    'country': 'kr',
+                    'job_sort': 'job.latest_order',
+                    'limit': 50,
+                    'offset': 0,
+                };
+                
+
+                // Handle experience parameter logic
+                if (selectedExps.includes('-1') || selectedExps.length === 0) {
+                    baseParams.years = '-1'; // If "무관" is checked or nothing is selected, search for all experiences.
+                } else {
+                    baseParams.years = selectedExps.join(',');
+                }
+
+                const queryString = new URLSearchParams(baseParams).toString();
+                
+                // For multiple locations, append them as separate 'locations' parameters
+                const locationsQuery = (selectedRegions.length > 0 ? selectedRegions : ['all'])
+                    .map(loc => `locations=${loc}`)
+                    .join('&');
+
+                const url = `https://www.wanted.co.kr/api/v4/jobs?${queryString}&${locationsQuery}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                
+                fetch(proxyUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok.');
+                        return response.json();
+                    })
+                    .then(data => {
+                        const jobData = JSON.parse(data.contents);
+                        currentJobs = jobData.data || []; // API 결과를 currentJobs에 저장
+                        displayJobs(currentJobs);
+                    })
+                    .catch(error => {
+                        console.error('There was an error fetching the job postings:', error);
+                        loadingIndicator.style.display = 'none';
+                        jobBoard.innerHTML = '<p style="text-align:center; color:red;">채용 공고를 불러오는 데 실패했습니다.</p>';
+                    });
+            }
+
+            // Function to render jobs into HTML cards
+            function displayJobs(jobs) {
+                loadingIndicator.style.display = 'none';
+                // jobs가 null이나 undefined일 경우를 대비해 빈 배열로 초기화
+                if (!jobs) {
+                    jobs = [];
+                }
+                const savedJobIds = getSavedJobIds();
+                const selectedSavedFilters = getSelectedCheckboxValues('saved');
+
+                let filteredJobs = jobs;
+
+                // Post-filter based on saved status if a filter is selected
+                if (selectedSavedFilters.length === 1) {
+                    if (selectedSavedFilters[0] === 'show') {
+                        filteredJobs = jobs.filter(job => savedJobIds.includes(job.id));
+                    } else if (selectedSavedFilters[0] === 'hide') {
+                        filteredJobs = jobs.filter(job => !savedJobIds.includes(job.id));
+                    }
+                }
+
+                jobBoard.innerHTML = ''; // Clear the board before re-rendering, in case it was called directly
+
+                if (!filteredJobs || filteredJobs.length === 0) {
+                    jobBoard.innerHTML = '<p style="text-align:center;">✅ 해당 조건의 채용 공고가 없습니다.</p>';
+                    return;
+                }
+                let htmlContent = '';
+                filteredJobs.forEach(job => {
+                    const { id, position, company, address } = job;
+                    const location = address?.full_location || "정보 없음";
+                    const jobLink = `https://www.wanted.co.kr/wd/${id}`;
+                    const thumbnailUrl = job.title_img?.thumb || company.logo_img?.thumb || `https://placehold.co/400x250/EFEFEF/AAAAAA?text=No+Image`;
+
+                    const isSaved = savedJobIds.includes(id);
+                    const savedClass = isSaved ? 'saved' : '';
+                    const saveButtonText = isSaved ? '❤️ 찜 취소' : '♡ 찜하기';
+
+                    htmlContent += `
+                        <div class="job-card">
+                            <img src="${thumbnailUrl}" class="job-card-thumbnail" alt="${company.name} 채용 공고 이미지" loading="lazy">
+                            <div class="job-card-content">
+                                <div>
+                                    <div class="job-title">${position}</div>
+                                    <div class="company-name">${company.name}</div>
+                                    <div class="job-details">📍 ${location}</div>
+                                </div>
+                                <div class="card-buttons">
+                                    <button class="save-btn ${savedClass}" data-job-id="${id}">${saveButtonText}</button>
+                                    <a href="${jobLink}" target="_blank" class="job-link">상세보기</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                jobBoard.innerHTML = htmlContent;
+            }
+
+            // --- Initial setup ---
+            populateCheckboxes('region-options', regions, 'region');
+            populateCheckboxes('exp-options', experiences, 'experience');
+            populateCheckboxes('saved-options', savedFilterOptions, 'saved');
+            
+            searchButton.addEventListener('click', fetchAndDisplayJobs);
+            fetchAndDisplayJobs(); // Initial fetch on page load
+
+            // Event delegation for save buttons
+            jobBoard.addEventListener('click', function(event) {
+                if (event.target.matches('.save-btn')) {
+                    const button = event.target;
+                    const jobId = parseInt(button.dataset.jobId, 10);
+                    
+                    toggleSaveJob(jobId);
+
+                    // Update button UI
+                    const isSaved = getSavedJobIds().includes(jobId);
+                    button.classList.toggle('saved', isSaved);
+                    button.textContent = isSaved ? '❤️ 찜 취소' : '♡ 찜하기';
+
+                    // If a saved-filter is active, re-render to hide/show the card instantly
+                    const selectedSavedFilters = getSelectedCheckboxValues('saved');
+                    if (selectedSavedFilters.length === 1) {
+                        if (selectedSavedFilters[0] === 'show' && !isSaved) {
+                            // If in "show saved" mode and a job is unsaved, remove it from the current list and re-render
+                            currentJobs = currentJobs.filter(job => job.id !== jobId);
+                            displayJobs(currentJobs);
+                        } else {
+                            displayJobs(currentJobs); // For other cases, just re-filter and render
+                        }
+                    }
+                }
+            });
+
+            // --- "To Top" Button Logic ---
+            const toTopButton = document.getElementById('to-top-button');
+
+            // Show/hide the button based on scroll position
+            window.onscroll = function() {
+                if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+                    toTopButton.style.display = "block";
+                } else {
+                    toTopButton.style.display = "none";
+                }
+            };
+
+            // Scroll to top when the button is clicked
+            toTopButton.addEventListener('click', function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        });
+    </script>
+
+</body>
+</html>
