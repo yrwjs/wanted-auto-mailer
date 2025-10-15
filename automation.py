@@ -1,55 +1,70 @@
 import smtplib
 import os
 from email.mime.text import MIMEText
+import ssl # SSL/TLS 보안 연결을 위해 추가
 
-# GitHub Secrets와 워크플로우 환경 변수에서 설정 값 불러오기
+# --- 설정 값 불러오기 ---
+# GitHub Secrets와 워크플로우 환경 변수에서 설정 값을 읽어옵니다.
 SMTP_SERVER = "smtp.naver.com"
-SMTP_PORT = 587
+SMTP_PORT = 465 # SSL 연결을 위한 표준 포트
 SMTP_USER = os.environ.get('SMTP_USER')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
 
-recipient_email = os.environ.get('RECIPIENT_EMAIL')
-location = os.environ.get('LOCATION')
-year = os.environ.get('YEAR')
-jobs = os.environ.get('JOBS')
+RECIPIENT_EMAIL = os.environ.get('RECIPIENT_EMAIL')
+LOCATION = os.environ.get('LOCATION')
+YEAR = os.environ.get('YEAR')
+JOBS = os.environ.get('JOBS')
 
-# 필수 값들이 모두 있는지 확인
-if not all([SMTP_USER, SMTP_PASSWORD, recipient_email, location, year, jobs]):
-    print("오류: 필요한 환경 변수 중 일부가 설정되지 않았습니다.")
+# --- 1. 필수 값 검증 ---
+# Actions 로그에 어떤 값이 비어있는지 명확하게 표시합니다.
+print("--- 환경 변수 확인 시작 ---")
+print(f"SMTP_USER: {'설정됨' if SMTP_USER else '***설정 안됨***'}")
+print(f"SMTP_PASSWORD: {'설정됨' if SMTP_PASSWORD else '***설정 안됨***'}")
+print(f"RECIPIENT_EMAIL: {'설정됨' if RECIPIENT_EMAIL else '***설정 안됨***'}")
+print("--------------------------")
+
+if not all([SMTP_USER, SMTP_PASSWORD, RECIPIENT_EMAIL]):
+    print("오류: SMTP 사용자, 비밀번호, 또는 수신자 이메일이 설정되지 않았습니다.")
     exit(1)
 
-# 이메일 제목 및 본문 생성
-subject = f"[{location}] {year}년 {jobs} 관련 정보입니다."
-body = f"""
-안녕하세요.
-
-요청하신 {year}년 {location} 지역의 {jobs} 관련 정보를 보내드립니다.
-
-이 메일은 GitHub Actions를 통해 자동으로 발송되었습니다.
-
-감사합니다.
-"""
-
-# 터미널에 로그를 출력하여 Actions 탭에서 확인할 수 있도록 함
-print(f"발신자: {SMTP_USER}")
-print(f"수신자: {recipient_email}")
-print(f"제목: {subject}")
-
-# 이메일 발송
+# --- 2. 이메일 메시지 생성 ---
 try:
-    smtp = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-    smtp.starttls()
-    smtp.login(SMTP_USER, SMTP_PASSWORD)
+    subject = f"[{LOCATION}] {YEAR}년 {JOBS} 관련 정보입니다."
+    body = f"""
+    안녕하세요.
 
-    msg = MIMEText(body)
+    요청하신 {YEAR}년 {LOCATION} 지역의 {JOBS} 관련 정보를 보내드립니다.
+
+    이 메일은 GitHub Actions를 통해 자동으로 발송되었습니다.
+
+    감사합니다.
+    """
+
+    msg = MIMEText(body, 'html', 'utf-8') # 인코딩 명시
     msg['Subject'] = subject
     msg['From'] = SMTP_USER
-    msg['To'] = recipient_email
-
-    smtp.sendmail(SMTP_USER, recipient_email, msg.as_string())
-    smtp.quit()
-    print(f"성공적으로 이메일을 발송했습니다: {recipient_email}")
+    msg['To'] = RECIPIENT_EMAIL
 
 except Exception as e:
-    print(f"이메일 발송 중 오류가 발생했습니다: {e}")
+    print(f"오류: 이메일 메시지 생성 중 문제가 발생했습니다: {e}")
+    exit(1)
+
+# --- 3. 이메일 발송 ---
+print("SMTP 서버에 연결을 시도합니다...")
+try:
+    # 처음부터 보안 연결(SSL)을 사용하여 서버에 접속
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=context) as smtp:
+        print("서버에 연결되었습니다. 로그인을 시도합니다...")
+        smtp.login(SMTP_USER, SMTP_PASSWORD)
+        print("로그인 성공. 이메일을 발송합니다...")
+        smtp.send_message(msg)
+        print(f"성공적으로 이메일을 발송했습니다: {RECIPIENT_EMAIL}")
+
+except smtplib.SMTPAuthenticationError:
+    print("오류: SMTP 인증 실패. 'Username and Password not accepted'.")
+    print("원인: ID 또는 앱 비밀번호가 정확하지 않습니다. GitHub Secrets 값을 다시 확인하세요.")
+    exit(1)
+except Exception as e:
+    print(f"오류: 이메일 발송 중 예상치 못한 문제가 발생했습니다: {e}")
     exit(1)
