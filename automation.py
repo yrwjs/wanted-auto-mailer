@@ -3,7 +3,7 @@ import os
 from email.mime.text import MIMEText
 
 # GitHub Secrets와 워크플로우 환경 변수에서 설정 값 불러오기
-SMTP_SERVER = "smtp.gmail.com"
+SMTP_SERVER = "smtp.naver.com"
 SMTP_PORT = 587
 SMTP_USER = os.environ.get('SMTP_USER')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
